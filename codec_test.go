@@ -11,24 +11,24 @@ type test2 struct {
 	data []byte
 }
 
-func (t test2) Marshal() []byte {
+func (t *test2) Marshal() []byte {
 	return t.data
 }
 
-func unmarshalTest2(data []byte) (test2, error) {
-	return test2{data: data}, nil
+func unmarshalTest2(data []byte) (*test2, error) {
+	return &test2{data: data}, nil
 }
 
 type test struct {
 	data []byte
 }
 
-func (t test) Marshal() []byte {
+func (t *test) Marshal() []byte {
 	return t.data
 }
 
-func unmarshalTest(data []byte) (test, error) {
-	return test{data: data}, nil
+func unmarshalTest(data []byte) (*test, error) {
+	return &test{data: data}, nil
 }
 
 func TestCodecRegisterEncodeDecode(t *testing.T) {
@@ -36,9 +36,9 @@ func TestCodecRegisterEncodeDecode(t *testing.T) {
 
 	codec := newCodec()
 
-	opcode := codec.register(test{}, unmarshalTest)
+	opcode := codec.register(&test{}, unmarshalTest)
 
-	msg := test{data: []byte("hello world")}
+	msg := &test{data: []byte("hello world")}
 
 	expected := make([]byte, OpcodeSize+len(msg.data))
 	binary.BigEndian.PutUint32(expected[:OpcodeSize], opcode)
@@ -52,7 +52,7 @@ func TestCodecRegisterEncodeDecode(t *testing.T) {
 
 	obj, err := codec.decode(data)
 	assert.NoError(t, err)
-	assert.IsType(t, obj, test{})
+	assert.IsType(t, obj, &test{})
 
 	// Failure cases.
 
@@ -60,7 +60,7 @@ func TestCodecRegisterEncodeDecode(t *testing.T) {
 	_, err = codec.decode(data)
 	assert.Error(t, err)
 
-	_, err = codec.encode(test2{data: []byte("should not be encodable")})
+	_, err = codec.encode(&test2{data: []byte("should not be encodable")})
 	assert.Error(t, err)
 
 }
@@ -71,8 +71,8 @@ func TestPanicIfDuplicateMessagesRegistered(t *testing.T) {
 	codec := newCodec()
 
 	assert.Panics(t, func() {
-		codec.register(test{}, unmarshalTest)
-		codec.register(test2{}, unmarshalTest2)
-		codec.register(test{}, unmarshalTest)
+		codec.register(&test{}, unmarshalTest)
+		codec.register(&test2{}, unmarshalTest2)
+		codec.register(&test{}, unmarshalTest)
 	})
 }

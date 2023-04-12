@@ -164,13 +164,13 @@ func (it *Iterator) lookupRequest(id noise.ID, out chan<- []noise.ID) {
 	ctx, cancel := context.WithTimeout(context.Background(), it.lookupTimeout)
 	defer cancel()
 
-	obj, err := it.node.RequestMessage(ctx, id.Address, FindNodeRequest{Target: id.ID})
+	obj, err := it.node.RequestMessage(ctx, id.Address, &FindNodeRequest{Target: id.ID})
 	if err != nil {
 		out <- nil
 		return
 	}
 
-	res, ok := obj.(FindNodeResponse)
+	res, ok := obj.(*FindNodeResponse)
 	if !ok {
 		out <- nil
 		return

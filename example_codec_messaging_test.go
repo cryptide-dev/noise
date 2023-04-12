@@ -15,14 +15,14 @@ type ChatMessage struct {
 }
 
 // Marshal serializes a chat message into bytes.
-func (m ChatMessage) Marshal() []byte {
+func (m *ChatMessage) Marshal() []byte {
 	return []byte(m.content)
 }
 
 // Unmarshal deserializes a slice of bytes into a chat message, and returns an error should deserialization
 // fail, or the slice of bytes be malformed.
-func UnmarshalChatMessage(buf []byte) (ChatMessage, error) {
-	return ChatMessage{content: strings.ToValidUTF8(string(buf), "")}, nil
+func UnmarshalChatMessage(buf []byte) (*ChatMessage, error) {
+	return &ChatMessage{content: strings.ToValidUTF8(string(buf), "")}, nil
 }
 
 // This example demonstrates messaging with registering Go types to be serialized/deserialized on-the-wire provided
@@ -49,8 +49,8 @@ func Example_codecMessaging() {
 	// Register the ChatMessage type to Alice and Bob so they know how to serialize/deserialize
 	// them.
 
-	alice.RegisterMessage(ChatMessage{}, UnmarshalChatMessage)
-	bob.RegisterMessage(ChatMessage{}, UnmarshalChatMessage)
+	alice.RegisterMessage(&ChatMessage{}, UnmarshalChatMessage)
+	bob.RegisterMessage(&ChatMessage{}, UnmarshalChatMessage)
 
 	var wg sync.WaitGroup
 
@@ -62,7 +62,7 @@ func Example_codecMessaging() {
 			return nil
 		}
 
-		msg, ok := obj.(ChatMessage)
+		msg, ok := obj.(*ChatMessage)
 		if !ok {
 			return nil
 		}
@@ -82,7 +82,7 @@ func Example_codecMessaging() {
 			return nil
 		}
 
-		msg, ok := obj.(ChatMessage)
+		msg, ok := obj.(*ChatMessage)
 		if !ok {
 			return nil
 		}
@@ -106,7 +106,7 @@ func Example_codecMessaging() {
 
 	// Have Alice send Bob a ChatMessage with 'Hi Bob!'
 
-	if err := alice.SendMessage(context.TODO(), bob.Addr(), ChatMessage{content: "Hi Bob!"}); err != nil {
+	if err := alice.SendMessage(context.TODO(), bob.Addr(), &ChatMessage{content: "Hi Bob!"}); err != nil {
 		panic(err)
 	}
 
@@ -117,7 +117,7 @@ func Example_codecMessaging() {
 
 	// Have Bob send Alice a ChatMessage with 'Hi Alice!'
 
-	if err := bob.SendMessage(context.TODO(), alice.Addr(), ChatMessage{content: "Hi Alice!"}); err != nil {
+	if err := bob.SendMessage(context.TODO(), alice.Addr(), &ChatMessage{content: "Hi Alice!"}); err != nil {
 		panic(err)
 	}
 

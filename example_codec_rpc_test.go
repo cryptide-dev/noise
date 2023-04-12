@@ -30,8 +30,8 @@ func Example_codecRPC() {
 	// Register the ChatMessage type to Alice and Bob so they know how to serialize/deserialize
 	// them.
 
-	alice.RegisterMessage(ChatMessage{}, UnmarshalChatMessage)
-	bob.RegisterMessage(ChatMessage{}, UnmarshalChatMessage)
+	alice.RegisterMessage(&ChatMessage{}, UnmarshalChatMessage)
+	bob.RegisterMessage(&ChatMessage{}, UnmarshalChatMessage)
 
 	// When Bob gets a request from Alice, print it out and respond to Alice with 'Hi Alice!'.
 
@@ -45,9 +45,9 @@ func Example_codecRPC() {
 			return nil
 		}
 
-		fmt.Printf("Got a message from Alice: '%s'\n", req.(ChatMessage).content)
+		fmt.Printf("Got a message from Alice: '%s'\n", req.(*ChatMessage).content)
 
-		return ctx.SendMessage(ChatMessage{content: "Hi Alice!"})
+		return ctx.SendMessage(&ChatMessage{content: "Hi Alice!"})
 	})
 
 	// Have Alice and Bob start listening for new peers.
@@ -62,14 +62,14 @@ func Example_codecRPC() {
 
 	// Have Alice send Bob a ChatMessage request with the message 'Hi Bob!'
 
-	res, err := alice.RequestMessage(context.TODO(), bob.Addr(), ChatMessage{content: "Hi Bob!"})
+	res, err := alice.RequestMessage(context.TODO(), bob.Addr(), &ChatMessage{content: "Hi Bob!"})
 	if err != nil {
 		panic(err)
 	}
 
 	// Print out the ChatMessage response Bob got from Alice.
 
-	fmt.Printf("Got a message from Bob: '%s'\n", res.(ChatMessage).content)
+	fmt.Printf("Got a message from Bob: '%s'\n", res.(*ChatMessage).content)
 
 	// Output:
 	// Got a message from Alice: 'Hi Bob!'

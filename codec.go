@@ -45,7 +45,17 @@ func (c *codec) register(ser Serializable, de interface{}) uint32 {
 		panic(fmt.Errorf("attempted to register type %+v which is already registered under opcode %d", t, opcode))
 	}
 
-	expected := reflect.FuncOf([]reflect.Type{reflect.TypeOf(([]byte)(nil))}, []reflect.Type{t, reflect.TypeOf((*error)(nil)).Elem()}, false)
+	in := []reflect.Type{reflect.TypeOf(([]byte)(nil))}
+	var out []reflect.Type
+
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+		out = []reflect.Type{reflect.New(t).Type(), reflect.TypeOf((*error)(nil)).Elem()}
+	} else {
+		out = []reflect.Type{t, reflect.TypeOf((*error)(nil)).Elem()}
+	}
+
+	expected := reflect.FuncOf(in, out, false)
 
 	if d.Type() != expected {
 		panic(fmt.Errorf("provided decoder for message type %+v is %s, but expected %s", t, d, expected))

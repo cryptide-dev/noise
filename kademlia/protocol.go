@@ -61,12 +61,12 @@ func (p *Protocol) Discover(opts ...IteratorOption) []noise.ID {
 // cancelled. It also throws an error if the connection to addr intermittently drops, or if handshaking with addr
 // should there be no live connection to addr yet fails.
 func (p *Protocol) Ping(ctx context.Context, addr string) error {
-	msg, err := p.node.RequestMessage(ctx, addr, Ping{})
+	msg, err := p.node.RequestMessage(ctx, addr, &Ping{})
 	if err != nil {
 		return fmt.Errorf("failed to ping: %w", err)
 	}
 
-	if _, ok := msg.(Pong); !ok {
+	if _, ok := msg.(*Pong); !ok {
 		return errors.New("did not get a pong back")
 	}
 
@@ -108,7 +108,7 @@ func (p *Protocol) Ack(id noise.ID) {
 		last := p.table.Last(id.ID)
 
 		ctx, cancel := context.WithTimeout(context.Background(), p.pingTimeout)
-		pong, err := p.node.RequestMessage(ctx, last.Address, Ping{})
+		pong, err := p.node.RequestMessage(ctx, last.Address, &Ping{})
 		cancel()
 
 		if err != nil {
@@ -126,7 +126,7 @@ func (p *Protocol) Ack(id noise.ID) {
 			continue
 		}
 
-		if _, ok := pong.(Pong); !ok {
+		if _, ok := pong.(*Pong); !ok {
 			if id, deleted := p.table.Delete(last.ID); deleted {
 				p.logger.Debug("Peer was evicted from routing table by failing to be pinged.",
 					zap.String("peer_id", id.String()),
@@ -175,10 +175,10 @@ func (p *Protocol) Bind(node *noise.Node) error {
 		p.logger = p.node.Logger()
 	}
 
-	node.RegisterMessage(Ping{}, UnmarshalPing)
-	node.RegisterMessage(Pong{}, UnmarshalPong)
-	node.RegisterMessage(FindNodeRequest{}, UnmarshalFindNodeRequest)
-	node.RegisterMessage(FindNodeResponse{}, UnmarshalFindNodeResponse)
+	node.RegisterMessage(&Ping{}, UnmarshalPing)
+	node.RegisterMessage(&Pong{}, UnmarshalPong)
+	node.RegisterMessage(&FindNodeRequest{}, UnmarshalFindNodeRequest)
+	node.RegisterMessage(&FindNodeResponse{}, UnmarshalFindNodeResponse)
 
 	node.Handle(p.Handle)
 
@@ -222,16 +222,16 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 	}
 
 	switch msg := msg.(type) {
-	case Ping:
+	case *Ping:
 		if !ctx.IsRequest() {
 			return errors.New("got a ping that was not sent as a request")
 		}
-		return ctx.SendMessage(Pong{})
-	case FindNodeRequest:
+		return ctx.SendMessage(&Pong{})
+	case *FindNodeRequest:
 		if !ctx.IsRequest() {
 			return errors.New("got a find node request that was not sent as a request")
 		}
-		return ctx.SendMessage(FindNodeResponse{Results: p.table.FindClosest(msg.Target, BucketSize)})
+		return ctx.SendMessage(&FindNodeResponse{Results: p.table.FindClosest(msg.Target, BucketSize)})
 	}
 
 	return nil
