@@ -1,6 +1,6 @@
 # noise
 
-This is the fork of (noise)[github.com/perlin-network/noise] project.
+This is the fork of [noise](github.com/perlin-network/noise) project.
 
 **noise** is an opinionated, easy-to-use P2P network stack for decentralized applications, and cryptographic protocols written in Go.
 
