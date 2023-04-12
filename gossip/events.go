@@ -9,13 +9,3 @@ type Events struct {
 	// disconnect the sender sending you data; indicating that the gossip received is invalid.
 	OnGossipReceived func(sender noise.ID, data []byte) error
 }
-
-// Option is a functional option that may be configured when instantiating a new instance of this gossip protocol.
-type Option func(protocol *Protocol)
-
-// WithEvents registers a batch of callbacks onto a single gossip protocol instance.
-func WithEvents(events Events) Option {
-	return func(protocol *Protocol) {
-		protocol.events = events
-	}
-}

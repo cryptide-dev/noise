@@ -12,6 +12,10 @@ import (
 	"github.com/cryptide-dev/noise/kademlia"
 )
 
+const (
+	defaultCacheSize = 32 << 20
+)
+
 // Protocol implements a simple gossiping protocol that avoids resending messages to peers that it already believes
 // is aware of particular messages that are being gossiped.
 type Protocol struct {
@@ -26,11 +30,14 @@ type Protocol struct {
 func New(overlay *kademlia.Protocol, opts ...Option) *Protocol {
 	p := &Protocol{
 		overlay: overlay,
-		seen:    fastcache.New(32 << 20),
 	}
 
 	for _, opt := range opts {
 		opt(p)
+	}
+
+	if p.seen == nil {
+		p.seen = fastcache.New(defaultCacheSize)
 	}
 
 	return p
@@ -87,6 +94,22 @@ func (p *Protocol) Push(ctx context.Context, data []byte) {
 	}
 
 	wg.Wait()
+}
+
+// PushMessage gossips a single message concurrently to all peers this node is aware of, on the condition that this node
+// believes that the aforementioned peer has not received data before. A context may be provided to cancel Push, as it
+// blocks the current goroutine until the gossiping of a single message is done. Any errors pushing a message to a
+// particular peer is ignored.
+//
+// PushMessage returns error is msg is not registered in (*Protocol).node
+func (p *Protocol) PushMessage(ctx context.Context, msg noise.Serializable) error {
+	data, err := p.node.EncodeMessage(msg)
+	if err != nil {
+		return err
+	}
+
+	p.Push(ctx, data)
+	return nil
 }
 
 // Handle implements noise.Protocol and handles gossip.Message messages.
