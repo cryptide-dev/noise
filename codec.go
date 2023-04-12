@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	opcodeSize   = crc32.Size
+	OpcodeSize   = crc32.Size
 	maxMsgNumber = 256
 )
 
@@ -78,19 +78,19 @@ func (c *codec) encode(msg Serializable) ([]byte, error) {
 		return nil, fmt.Errorf("opcode not registered for message type %+v", t)
 	}
 
-	buf := make([]byte, opcodeSize)
-	binary.BigEndian.PutUint32(buf[:opcodeSize], opcode)
+	buf := make([]byte, OpcodeSize)
+	binary.BigEndian.PutUint32(buf[:OpcodeSize], opcode)
 
 	return append(buf, msg.Marshal()...), nil
 }
 
 func (c *codec) decode(data []byte) (Serializable, error) {
-	if len(data) < opcodeSize {
+	if len(data) < OpcodeSize {
 		return nil, io.ErrUnexpectedEOF
 	}
 
-	opcode := binary.BigEndian.Uint32(data[:opcodeSize])
-	data = data[opcodeSize:]
+	opcode := binary.BigEndian.Uint32(data[:OpcodeSize])
+	data = data[OpcodeSize:]
 
 	c.RLock()
 	defer c.RUnlock()
