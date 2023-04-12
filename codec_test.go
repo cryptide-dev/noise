@@ -40,14 +40,14 @@ func TestCodecRegisterEncodeDecode(t *testing.T) {
 
 	msg := test{data: []byte("hello world")}
 
-	expected := make([]byte, 2+len(msg.data))
-	binary.BigEndian.PutUint16(expected[:2], opcode)
-	copy(expected[2:], msg.data)
+	expected := make([]byte, opcodeSize+len(msg.data))
+	binary.BigEndian.PutUint32(expected[:opcodeSize], opcode)
+	copy(expected[opcodeSize:], msg.data)
 
 	data, err := codec.encode(msg)
 	assert.NoError(t, err)
 
-	assert.EqualValues(t, opcode, binary.BigEndian.Uint16(data[:2]))
+	assert.EqualValues(t, opcode, binary.BigEndian.Uint32(data[:opcodeSize]))
 	assert.EqualValues(t, expected, data)
 
 	obj, err := codec.decode(data)

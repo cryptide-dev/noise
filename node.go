@@ -242,15 +242,15 @@ func (n *Node) Listen() error {
 //
 //  RegisterMessage(T{}, func([]byte) (T, error) { ... })
 //
-// It returns a 16-bit unsigned integer (opcode) that is associated to the type T on-the-wire. Once a Go type has been
+// It returns a 32-bit unsigned integer (opcode) that is associated to the type T on-the-wire. Once a Go type has been
 // registered, it may be used in a Handler, or via (*Node).EncodeMessage, (*Node).DecodeMessage, (*Node).SendMessage,
 // and (*Node).RequestMessage.
 //
 // The wire format of a type registered comprises of
-// append([]byte{16-bit big-endian integer (opcode)}, ser.Marshal()...).
+// append([]byte{32-bit big-endian integer (opcode)}, ser.Marshal()...).
 //
 // RegisterMessage may be called concurrently, though is discouraged.
-func (n *Node) RegisterMessage(ser Serializable, de interface{}) uint16 {
+func (n *Node) RegisterMessage(ser Serializable, de interface{}) uint32 {
 	return n.codec.register(ser, de)
 }
 

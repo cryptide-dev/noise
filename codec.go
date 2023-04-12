@@ -3,10 +3,15 @@ package noise
 import (
 	"encoding/binary"
 	"fmt"
+	"hash/crc32"
 	"io"
-	"math"
 	"reflect"
 	"sync"
+)
+
+const (
+	opcodeSize   = crc32.Size
+	maxMsgNumber = 256
 )
 
 // Serializable attributes whether or not a type has a byte representation that it may be serialized into.
@@ -18,19 +23,18 @@ type Serializable interface {
 type codec struct {
 	sync.RWMutex
 
-	counter uint16
-	ser     map[reflect.Type]uint16
-	de      map[uint16]reflect.Value
+	ser map[reflect.Type]uint32
+	de  map[uint32]reflect.Value
 }
 
 func newCodec() *codec {
 	return &codec{
-		ser: make(map[reflect.Type]uint16, math.MaxUint16),
-		de:  make(map[uint16]reflect.Value, math.MaxUint16),
+		ser: make(map[reflect.Type]uint32, maxMsgNumber),
+		de:  make(map[uint32]reflect.Value, maxMsgNumber),
 	}
 }
 
-func (c *codec) register(ser Serializable, de interface{}) uint16 {
+func (c *codec) register(ser Serializable, de interface{}) uint32 {
 	c.Lock()
 	defer c.Unlock()
 
@@ -47,12 +51,16 @@ func (c *codec) register(ser Serializable, de interface{}) uint16 {
 		panic(fmt.Errorf("provided decoder for message type %+v is %s, but expected %s", t, d, expected))
 	}
 
-	c.ser[t] = c.counter
-	c.de[c.counter] = d
+	newOpcode := crc32.ChecksumIEEE([]byte(t.Name()))
 
-	c.counter++
+	if _, registered := c.de[newOpcode]; registered {
+		panic(fmt.Errorf("attempted to register type %+v whose opcode %d collides with opcode of already registered type", t, newOpcode))
+	}
 
-	return c.counter - 1
+	c.ser[t] = newOpcode
+	c.de[newOpcode] = d
+
+	return newOpcode
 }
 
 func (c *codec) encode(msg Serializable) ([]byte, error) {
@@ -70,19 +78,19 @@ func (c *codec) encode(msg Serializable) ([]byte, error) {
 		return nil, fmt.Errorf("opcode not registered for message type %+v", t)
 	}
 
-	buf := make([]byte, 2)
-	binary.BigEndian.PutUint16(buf[:2], opcode)
+	buf := make([]byte, opcodeSize)
+	binary.BigEndian.PutUint32(buf[:opcodeSize], opcode)
 
 	return append(buf, msg.Marshal()...), nil
 }
 
 func (c *codec) decode(data []byte) (Serializable, error) {
-	if len(data) < 2 {
+	if len(data) < opcodeSize {
 		return nil, io.ErrUnexpectedEOF
 	}
 
-	opcode := binary.BigEndian.Uint16(data[:2])
-	data = data[2:]
+	opcode := binary.BigEndian.Uint32(data[:opcodeSize])
+	data = data[opcodeSize:]
 
 	c.RLock()
 	defer c.RUnlock()
