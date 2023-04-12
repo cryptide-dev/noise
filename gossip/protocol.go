@@ -4,6 +4,7 @@ package gossip
 
 import (
 	"context"
+	"crypto/md5"
 	"sync"
 
 	"github.com/VictoriaMetrics/fastcache"
@@ -150,5 +151,6 @@ func (p *Protocol) Handle(ctx noise.HandlerContext) error {
 }
 
 func (p *Protocol) hash(id noise.ID, data []byte) []byte {
-	return append(id.ID[:], data...)
+	hash := md5.Sum(append(id.ID[:], data...))
+	return hash[:]
 }
