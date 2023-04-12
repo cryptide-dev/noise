@@ -131,7 +131,8 @@ func (n *Node) Listen() error {
 		return errors.New("did not bind to a tcp addr")
 	}
 
-	n.host = addr.IP
+	// n.listener.Addr() returns addr as 4-byte slice, but noise expects 16-byte slice even if it is IPv4
+	n.host = net.IPv4(addr.IP[0], addr.IP[1], addr.IP[2], addr.IP[3])
 	n.port = uint16(addr.Port)
 
 	if n.addr == "" {
